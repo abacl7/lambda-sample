@@ -1,0 +1,14 @@
+version: 0.2
+
+phases:
+  build:
+    commands:
+      - echo Build started on `date`
+      - env GOOS=linux GOARCH=amd64 go build hello.go
+  post_build:
+    commands:
+      - echo Build finished on `date`
+
+artifacts:
+  files:
+    - hello
