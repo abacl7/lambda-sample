@@ -1,0 +1,38 @@
+swagger: "2.0"
+info:
+  title:
+    Fn::Sub: "${LambdaFunctionName}-${StageName}"
+  version: "1.0"
+basePath:
+  Fn::Sub: "/${StageName}"
+paths:
+  /hello:
+    post:
+      produces:
+        - application/json
+      responses:
+        "200":
+          description: "return hello world string"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  message:
+                    type: "string"
+                    example: "Hello World"
+      x-amazon-apigateway-integration:
+        credentials:
+          Fn::Sub: "arn:aws:iam::${AWS::AccountId}:role/${RoleName}"
+        responses:
+          default:
+            statusCode: 200
+            responseTemplates:
+              application/json: |
+                {
+                  "body" : $input.json('$')
+                }
+        httpMethod: "POST"
+        type: "aws_proxy"
+        uri:
+          Fn::Sub: "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${MyLambdaFunction.Arn}/invocations"

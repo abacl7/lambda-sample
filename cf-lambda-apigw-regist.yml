@@ -1,0 +1,72 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Add Lambda Function and APIGateway Endpoint
+
+Parameters:
+  LambdaFunctionName:
+    Type: String
+    Description: function name for Lambda
+
+  BucketName:
+    Type: String
+    Description: S3 Bucket name
+
+  RoleName:
+    Type: String
+    Description: IAM Role for S3 Bucket access and Lambda execution
+
+  Region:
+    Type: String
+    Description: Region which target S3 Bucket hosted
+
+  AppCodeKey:
+    Type: String
+    Description: Lambda App Code Archive file name
+
+  StageName:
+    Type: String
+    Description: Application Stage Name
+    Default: test
+
+Resources:
+  MyLambdaFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri:
+        Bucket: !Ref BucketName
+        Key: !Ref AppCodeKey
+      FunctionName: !Ref LambdaFunctionName
+      Handler: "hello"
+      Role: !Sub "arn:aws:iam::${AWS::AccountId}:role/${RoleName}"
+      Runtime: "go1.x"
+      Events:
+        AddMyApi:
+          Type: Api
+          Properties:
+            RestApiId: !Ref MyRestApi
+            Path: /hello
+            Method: GET
+
+  MyRestApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: !Ref StageName
+      DefinitionBody:
+        Fn::Transform:
+          Name: AWS::Include
+          Parameters:
+            Location: !Sub "s3://${BucketName}/swagger.yml"
+
+Outputs:
+  APIGatewayEndpoint:
+    Description: API Gateway access URL
+    Value: !Join
+      - ""
+      - - https://
+        - !Ref MyRestApi
+        - .execute-api.
+        - !Ref "AWS::Region"
+        - ".amazonaws.com/"
+        - !Ref StageName
+        - "/hello"
