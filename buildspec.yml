@@ -4,7 +4,7 @@ phases:
   build:
     commands:
       - echo Build started on `date`
-      - GOOS=linux GOARCH=amd64 go build hello/hello.go
+      - GOOS=linux GOARCH=amd64 go build src/hello.go
   post_build:
     commands:
       - echo Build finished on `date`
