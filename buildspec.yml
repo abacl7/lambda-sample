@@ -7,6 +7,7 @@ phases:
       - GOOS=linux GOARCH=amd64 go build src/hello.go
   post_build:
     commands:
+      - echo `printenv`
       - echo Build finished on `date`
 
 artifacts:
