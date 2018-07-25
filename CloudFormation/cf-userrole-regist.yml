@@ -1,0 +1,67 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+Description: "add Role for CloudFormation and AWS Services"
+
+Parameters:
+  ApplicationRoleName:
+    Type: String
+    Description: role of access permit for cicd resources
+  PipelineRoleName:
+    Type: String
+    Description: role of access permit for cicd resources
+
+Resources:
+  PipelineDemoRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - "lambda.amazonaws.com"
+                - "apigateway.amazonaws.com"
+                - "codebuild.amazonaws.com"
+            Action: "sts:AssumeRole"
+      Policies:
+        - PolicyName: PipelineDemoPolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Action:
+                - "lambda:*"
+                - "apigateway:*"
+                - "S3:*"
+                - "codebuild:*"
+                - "codepipeline:*"
+                Effect: Allow
+                Resource: "*"
+      RoleName: !Ref PipelineRoleName
+
+  ApplicationDemoRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - "lambda.amazonaws.com"
+                - "apigateway.amazonaws.com"
+            Action: "sts:AssumeRole"
+      Policies:
+        - PolicyName: ApplicationDemoPolicy
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Action:
+                - "lambda:*"
+                - "apigateway:*"
+                - "S3:*"
+                - "codebuild:*"
+                - "codepipeline:*"
+                Effect: Allow
+                Resource: "*"
+      RoleName: !Ref ApplicationRoleName

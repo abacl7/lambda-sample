@@ -1,0 +1,142 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+Description: "add CodePipeline"
+
+Parameters:
+  AppCodeKey:
+    Type: String
+    Description: app archive file name
+  ApplicationRoleName:
+    Type: String
+    Description: role of access permit for cicd resources
+  BucketName:
+    Type: String
+    Description: S3 Bucket that store all stuff of this sample project
+  GitHubAccount:
+    Type: String
+    Description: account of github
+  GitHubBranch:
+    Type: String
+    Description: branch that use for application build
+    Default: master
+  GitHubRepository:
+    Type: String
+    Description: GitHub repository URL of application codes
+  GitHubToken:
+    Type: String
+    Description: GitHub Token to access repository
+  LambdaFunctionName:
+    Type: String
+    Description: Lambda Function Name
+  PipelineRoleName:
+    Type: String
+    Description: role of access permit for cicd resources
+  Region:
+    Type: String
+    Description: Region that host all resources of this sample project
+  SAMInputFile:
+    Type: String
+    Description: The filename for the SAM file.
+    Default: cf-lambda-apigw-regist.yml
+  SAMOutputFile:
+    Type: String
+    Description: The filename for the output SAM file from the buildspec file.
+    Default: cf-lambda-apigw-regist-out.yml
+  ServiceName:
+    Type: String
+    Description: Base name of all resources of this sample project
+  StageName:
+    Type: String
+    Description: Application Stage Name
+
+Resources:
+  CodePipeline4CI:
+    Type: "AWS::CodePipeline::Pipeline"
+    Properties:
+      ArtifactStore:
+        Location: !Ref BucketName
+        Type: S3
+      Name: !Sub "codepipeline-${ServiceName}"
+      RestartExecutionOnUpdate: false
+      RoleArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/${PipelineRoleName}"
+      Stages:
+        - Name: Source
+          Actions:
+            Name: "pull source from GitHub"
+            ActionTypeId:
+              Category: Source
+              Owner: ThirdParty
+              Provider: GitHub
+              Version: "1"
+            OutputArtifacts:
+              Name: MyAppSource
+            Configuration:
+              Owner: !Ref GitHubAccount
+              Repo: !Ref GitHubRepository
+              Branch: !Ref GitHubBranch
+              OAuthToken: !Ref GitHubToken
+            RunOrder: 1
+
+        - Name: Build
+          Actions:
+            Name: "build App"
+            ActionTypeId:
+              Category: Build
+              Owner: AWS
+              Provider: CodeBuild
+              Version: "1"
+            Configuration:
+              ProjectName: !Ref ServiceName
+            InputArtifacts:
+              - Name: MyAppSource
+            OutputArtifacts:
+              - Name: MyAppBuild
+            RunOrder: 1
+
+        - Name: Deploy
+          Actions:
+            Name: "create ChangeSet"
+            ActionTypeId:
+              Category: Deploy
+              Owner: AWS
+              Provider: CloudFormation
+              Version: "1"
+            Configuration:
+              ActionMode: CHANGE_SET_REPLACE
+              Capabilities: CAPABILITY_NAMED_IAM
+              ChangeSetName: !Sub "changeset-${ServiceName}"
+              RoleArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/${ApplicationRoleName}"
+              StackName: !Sub "deploy-${ServiceName}"
+              TemplatePath: !Sub "MyAppBuild::${SAMOutputFile}"
+              ParameterOverrides: !Sub |
+                "{
+                  "AppCodeKey" : { "Ref" : "${ServiceName}" },
+                  "BucketName" : { "Ref" : "${BucketName}" },
+                  "LambdaFunctionName" : { "Ref": "${LambdaFunctionName}" },
+                  "Region" : { "Ref" : "${Region}" },
+                  "RoleName" : { "Ref" : "${ApplicationRoleName}" },
+                  "StageName" : { "Ref" : "${StageName}" }
+                }"
+            InputArtifacts:
+              - Name: MyAppBuild
+            OutputArtifacts: []
+            RunOrder: 1
+
+        - Name: "execute Deploy Stack"
+          ActionTypeId:
+            Category: Deploy
+            Owner: AWS
+            Provider: CloudFormation
+            Version: "1"
+          Configuration:
+            ActionMode: CHANGE_SET_EXECUTE
+            ChangeSetName: !Sub "changeset-${ServiceName}"
+            StackName: !Sub "deploy-${ServiceName}"
+          InputArtifacts: []
+          OutputArtifacts: []
+          RunOrder: 2
+
+Outputs:
+  CodePipeline4CI:
+    Description: Resource name assigned to pipeline
+    Value: !Ref CodePipeline4CI

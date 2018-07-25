@@ -1,0 +1,43 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: "add CI Pipeline and CodeBuild"
+
+Parameters:
+  BucketName:
+    Type: String
+    Description: S3 Bucket that store all stuff of this sample project
+  BuildImage:
+    Type: String
+    Description: Image used for CodeBuild project.
+  BuildServiceRole:
+    Type: String
+    Description: Service role assigned to CodeBuild
+  ServiceName:
+    Type: String
+    Description: Base name of all resources of this sample project
+
+Resources:
+  CodeBuildForCI:
+    Type: "AWS::CodeBuild::Project"
+    Properties:
+      Artifacts:
+        Location: !Ref BucketName
+        Name: !Sub "${ServiceName}.zip"
+        Packaging: ZIP
+        Path: ""
+        Type: S3
+      Description: "Build and Packaging Application"
+      Environment:
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: !Ref BuildImage
+        Type: LINUX_CONTAINER
+      Name: !Sub "codebuild-${ServiceName}"
+      ServiceRole: !Ref BuildServiceRole
+      Source:
+        Type: CODEPIPELINE
+      TimeoutInMinutes: 10
+
+Outputs:
+  CodeBuildForCI:
+    Description: Created CodeBuild project
+    Value: !Ref CodeBuildForCI

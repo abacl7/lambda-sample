@@ -4,26 +4,21 @@ Transform: AWS::Serverless-2016-10-31
 Description: Add Lambda Function and APIGateway Endpoint
 
 Parameters:
-  LambdaFunctionName:
-    Type: String
-    Description: function name for Lambda
-
-  BucketName:
-    Type: String
-    Description: S3 Bucket name
-
-  RoleName:
-    Type: String
-    Description: IAM Role for S3 Bucket access and Lambda execution
-
-  Region:
-    Type: String
-    Description: Region which target S3 Bucket hosted
-
   AppCodeKey:
     Type: String
     Description: Lambda App Code Archive file name
-
+  BucketName:
+    Type: String
+    Description: S3 Bucket name
+  LambdaFunctionName:
+    Type: String
+    Description: function name for Lambda
+  Region:
+    Type: String
+    Description: Region which target S3 Bucket hosted
+  RoleName:
+    Type: String
+    Description: IAM Role for S3 Bucket access and Lambda execution
   StageName:
     Type: String
     Description: Application Stage Name

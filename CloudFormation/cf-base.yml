@@ -1,0 +1,86 @@
+---
+AWSTemplateFormatVersion: 2010-09-09
+Description: Root Stack of Lambda Sample Creation Stacks
+
+Parameters:
+  ApplicationRoleName:
+    Type: String
+    Description: role of access permit for cicd resources
+    Default: role-for-app-of-lambda-pipeline-demo
+  BucketName:
+    Type: String
+    Description: S3 Bucket that store all stuff of this sample project
+  BuildImage:
+    Type: String
+    Description: build container repository name and tag  ex. hogehoge:latest
+    Default: "abacl7/go-devenv:latest"
+  GitHubAccount:
+    Type: String
+    Description: account of github
+  GitHubBranch:
+    Type: String
+    Description: branch that use for application build
+    Default: master
+  GitHubRepository:
+    Type: String
+    Description: GitHub repository URL of application codes
+  GitHubToken:
+    Type: String
+    Description: GitHub Token to access repository
+  LambdaFunctionName:
+    Type: String
+    Description: Lambda Function Name
+  PipelineRoleName:
+    Type: String
+    Description: role of access permit for cicd resources
+    Default: role-for-cicd-of-lambda-pipeline-demo
+  Region:
+    Type: String
+    Description: Region that host all resources of this sample project
+  ServiceName:
+    Type: String
+    Description: Base name of all resources of this sample project
+  StageName:
+    Type: String
+    Description: Application Stage Name
+
+Resources:
+  MyRole:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      Parameters:
+        PipelineRoleName: !Ref PipelineRoleName
+        ApplicationRoleName: !Ref ApplicationRoleName
+      TemplateURL: !Sub "https://s3-${Region}.amazonaws.com/${BucketName}/cf-userrole-regist.yml"
+      TimeoutInMinutes: 2
+
+  MyCodeBuild:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      Parameters:
+        BucketName: !Ref BucketName
+        BuildImage: !Ref BuildImage
+        BuildServiceRole: !Ref PipelineRoleName
+        ServiceName: !Ref ServiceName
+      TemplateURL: !Sub "https://s3-${Region}.amazonaws.com/${BucketName}/cf-codebuild-regist.yml"
+      TimeoutInMinutes: 10
+
+  MyCodePipeline:
+    DependsOn: [MyCodeBuild]
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: !Sub "https://s3-${Region}.amazonaws.com/${BucketName}/cf-codepipeline-regist.yml"
+      TimeoutInMinutes: 12
+      Parameters:
+        AppCodeKey: !Sub "${ServiceName}.zip"
+        ApplicationRoleName: !Ref ApplicationRoleName
+        BucketName: !Ref BucketName
+        GitHubAccount: !Ref GitHubAccount
+        GitHubBranch: !Ref GitHubBranch
+        GitHubRepository: !Ref GitHubRepository
+        GitHubToken: !Ref GitHubToken
+        LambdaFunctionName: !Ref LambdaFunctionName
+        PipelineRoleName: !Ref PipelineRoleName
+        Region: !Ref Region
+        ServiceName: !Ref ServiceName
+        StageName: !Ref StageName
